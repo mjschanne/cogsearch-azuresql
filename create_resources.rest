@@ -1,0 +1,71 @@
+// create datasource
+POST https://myservice.search.windows.net/datasources?api-version=2020-06-30
+ Content-Type: application/json
+ api-key: admin-key
+
+ {
+     "name" : "myazuresqldatasource",
+     "description" : "A database for testing Azure Cognitive Search indexes.",
+     "type" : "azuresql",
+     "credentials" : { "connectionString" : "Server=tcp:<your server>.database.windows.net,1433;Database=<your database>;User ID=<your user name>;Password=<your password>;Trusted_Connection=False;Encrypt=True;Connection Timeout=30;" },
+     "container" : { 
+         "name" : "name of the table or view that you want to index",
+         "query" : null (not supported in the Azure SQL indexer)
+         },
+     "dataChangeDetectionPolicy": null,
+     "dataDeletionDetectionPolicy": null,
+     "encryptionKey": null,
+     "identity": null
+ }
+
+// create index
+POST https://[service name].search.windows.net/indexes?api-version=2020-06-30
+Content-Type: application/json
+api-key: [Search service admin key]
+
+{
+    "name": "mysearchindex",
+    "fields": [{
+        "name": "id",
+        "type": "Edm.String",
+        "key": true,
+        "searchable": false
+    }, 
+    {
+        "name": "description",
+        "type": "Edm.String",
+        "filterable": false,
+        "searchable": true,
+        "sortable": false,
+        "facetable": false,
+        "suggestions": true
+    }
+  ]
+}
+
+// create skillset
+
+// create indexer
+POST https://[service name].search.windows.net/indexers?api-version=2020-06-30
+Content-Type: application/json
+api-key: [search service admin key]
+{
+    "name" : "[my-sqldb-indexer]",
+    "dataSourceName" : "[my-sqldb-ds]",
+    "targetIndexName" : "[my-search-index]",
+    "disabled": null,
+    "schedule": null,
+    "parameters": {
+        "batchSize": null,
+        "maxFailedItems": 0,
+        "maxFailedItemsPerBatch": 0,
+        "base64EncodeKeys": false,
+        "configuration": {
+            "queryTimeout": "00:04:00",
+            "convertHighWaterMarkToRowVersion": false,
+            "disableOrderByHighWaterMarkColumn": false
+        }
+    },
+    "fieldMappings": [],
+    "encryptionKey": null
+}
