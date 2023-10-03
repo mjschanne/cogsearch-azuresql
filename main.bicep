@@ -54,13 +54,13 @@ param partitionCount int = 1
 ])
 param hostingMode string = 'default'
 
-var virtualNetworkName = 'vNet'
-var subnetName = 'backendSubnet'
+// var virtualNetworkName = 'vNet'
+// var subnetName = 'backendSubnet'
 var privateEndpointSQLName = 'b12-privateEndpointSQL'
-var subnet1Name = 'mySubnet'
+// var subnet1Name = 'mySubnet'
 var privateEndpointSearchName = 'b12-privateEndpointSearch'
-var privateDnsZoneName = 'privatelink.search.windows.net'
-var privateDnsZoneSQLGroupName = '${privateEndpointSQLName}/dnsgroupname'
+// var privateDnsZoneName = 'privatelink.search.windows.net'
+// var privateDnsZoneSQLGroupName = '${privateEndpointSQLName}/dnsgroupname'
 var privateDnsZoneSearchGroupName = '${privateEndpointSearchName}/dnsgroupname'
 
 // resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-05-01' = {
