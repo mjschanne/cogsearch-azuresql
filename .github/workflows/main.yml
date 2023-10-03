@@ -25,5 +25,5 @@ jobs:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION }}
         resourceGroupName: ${{ secrets.AZURE_RG }}
         template: ./main.bicep
-        parameters: 'storagePrefix=mystore storageSKU=Standard_LRS'
+        parameters: 'administratorLogin=${{ secrets.SQL_ADMIN }} administratorLoginPassword=${{ secrets.SQL_PASSWORD }} name=b12-search'
         failOnStdErr: false
