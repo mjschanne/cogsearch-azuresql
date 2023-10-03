@@ -1,71 +1,3 @@
-/// FROM DEPLOY BICEP GITHUB ACTION TUTORIAL
-/// parameters: 'storagePrefix=mystore storageSKU=Standard_LRS'
-
-// @minLength(3)
-// @maxLength(11)
-// param storagePrefix string
-
-// @allowed([
-//   'Standard_LRS'
-//   'Standard_GRS'
-//   'Standard_RAGRS'
-//   'Standard_ZRS'
-//   'Premium_LRS'
-//   'Premium_ZRS'
-//   'Standard_GZRS'
-//   'Standard_RAGZRS'
-// ])
-// param storageSKU string = 'Standard_LRS'
-
-// param location string = resourceGroup().location
-
-// var uniqueStorageName = '${storagePrefix}${uniqueString(resourceGroup().id)}'
-
-// resource stg 'Microsoft.Storage/storageAccounts@2021-04-01' = {
-//   name: uniqueStorageName
-//   location: location
-//   sku: {
-//     name: storageSKU
-//   }
-//   kind: 'StorageV2'
-//   properties: {
-//     supportsHttpsTrafficOnly: true
-//   }
-// }
-
-// output storageEndpoint object = stg.properties.primaryEndpoints
-
-
-/// FROM VNET BICEP TUTORIAL; stripped of vms and nsgs
-@description('Location for all resources.')
-param location string = resourceGroup().location
-
-var virtualNetworkName = 'vNet'
-var subnetName = 'backendSubnet'
-
-resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-05-01' = {
-  name: virtualNetworkName
-  location: location
-  properties: {
-    addressSpace: {
-      addressPrefixes: [
-        '10.0.0.0/16'
-      ]
-    }
-    subnets: [
-      {
-        name: subnetName
-        properties: {
-          addressPrefix: '10.0.2.0/24'
-        }
-      }
-    ]
-  }
-}
-
-
-
-/// FROM AZ SQL BICEP TUTORIAL
 @description('The name of the SQL logical server.')
 param serverName string = uniqueString('sql', resourceGroup().id)
 
@@ -79,59 +11,13 @@ param administratorLogin string
 @secure()
 param administratorLoginPassword string
 
-resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
-  name: serverName
-  location: location
-  properties: {
-    administratorLogin: administratorLogin
-    administratorLoginPassword: administratorLoginPassword
-    publicNetworkAccess: 'Disabled'
-  }
-}
-
-resource sqlDB 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
-  parent: sqlServer
-  name: sqlDBName
-  location: location
-  sku: {
-    name: 'Standard'
-    tier: 'Standard'
-  }
-}
-
-
-var privateEndpointSQLName = 'b12-privateEndpointSQL'
-var subnet1Name = 'mySubnet'
-
-resource privateEndpointSQL 'Microsoft.Network/privateEndpoints@2020-07-01' = {
-  name: privateEndpointSQLName
-  location: location
-  properties: {
-    subnet: {
-      id: resourceId('Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, subnet1Name)
-    }
-    privateLinkServiceConnections: [
-      {
-        name: privateEndpointSQLName
-        properties: {
-          privateLinkServiceId: sqlServer.id
-          groupIds: [
-            'sqlServer'
-          ]
-        }
-      }
-    ]
-  }
-  dependsOn: [
-    virtualNetwork
-  ]
-}
-
+@description('Location for all resources.')
+param location string = resourceGroup().location
 
 @description('Service name must only contain lowercase letters, digits or dashes, cannot use dash as the first two or last one characters, cannot contain consecutive dashes, and is limited between 2 and 60 characters in length.')
 @minLength(2)
 @maxLength(60)
-param name string
+param searchName string
 
 @allowed([
   'free'
@@ -168,8 +54,81 @@ param partitionCount int = 1
 ])
 param hostingMode string = 'default'
 
+var virtualNetworkName = 'vNet'
+var subnetName = 'backendSubnet'
+var privateEndpointSQLName = 'b12-privateEndpointSQL'
+var subnet1Name = 'mySubnet'
+var privateEndpointSearchName = 'b12-privateEndpointSearch'
+var privateDnsZoneName = 'privatelink.search.windows.net'
+var privateDnsZoneSQLGroupName = '${privateEndpointSQLName}/dnsgroupname'
+var privateDnsZoneSearchGroupName = '${privateEndpointSearchName}/dnsgroupname'
+
+// resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-05-01' = {
+//   name: virtualNetworkName
+//   location: location
+//   properties: {
+//     addressSpace: {
+//       addressPrefixes: [
+//         '10.0.0.0/16'
+//       ]
+//     }
+//     subnets: [
+//       {
+//         name: subnetName
+//         properties: {
+//           addressPrefix: '10.0.2.0/24'
+//         }
+//       }
+//     ]
+//   }
+// }
+
+resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
+  name: serverName
+  location: location
+  properties: {
+    administratorLogin: administratorLogin
+    administratorLoginPassword: administratorLoginPassword
+    // publicNetworkAccess: 'Disabled'
+  }
+}
+
+resource sqlDB 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
+  parent: sqlServer
+  name: sqlDBName
+  location: location
+  sku: {
+    name: 'Standard'
+    tier: 'Standard'
+  }
+}
+
+// resource privateEndpointSQL 'Microsoft.Network/privateEndpoints@2020-07-01' = {
+//   name: privateEndpointSQLName
+//   location: location
+//   properties: {
+//     subnet: {
+//       id: resourceId('Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, subnet1Name)
+//     }
+//     privateLinkServiceConnections: [
+//       {
+//         name: privateEndpointSQLName
+//         properties: {
+//           privateLinkServiceId: sqlServer.id
+//           groupIds: [
+//             'sqlServer'
+//           ]
+//         }
+//       }
+//     ]
+//   }
+//   dependsOn: [
+//     virtualNetwork
+//   ]
+// }
+
 resource search 'Microsoft.Search/searchServices@2020-08-01' = {
-  name: name
+  name: searchName
   location: location
   sku: {
     name: sku
@@ -178,93 +137,85 @@ resource search 'Microsoft.Search/searchServices@2020-08-01' = {
     replicaCount: replicaCount
     partitionCount: partitionCount
     hostingMode: hostingMode
-    publicNetworkAccess: 'disabled'
+    // publicNetworkAccess: 'disabled'
   }
 }
 
-var privateEndpointSearchName = 'b12-privateEndpointSearch'
+// resource privateEndpointSearch 'Microsoft.Network/privateEndpoints@2022-01-01' = {
+//   name: privateEndpointSearchName
+//   location: location
+//   properties: {
+//     subnet: {
+//       id: resourceId('Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, subnetName)
+//     }
+//     privateLinkServiceConnections: [
+//       {
+//         name: privateEndpointSearchName
+//         properties: {
+//           privateLinkServiceId: search.id
+//           groupIds: [
+//             'searchService'
+//           ]
+//         }
+//       }
+//     ]
+//   }
+//   dependsOn: [
+//     virtualNetwork
+//   ]
+// }
 
-resource privateEndpointSearch 'Microsoft.Network/privateEndpoints@2022-01-01' = {
-  name: privateEndpointSearchName
-  location: location
-  properties: {
-    subnet: {
-      id: resourceId('Microsoft.Network/virtualNetworks/subnets', virtualNetworkName, subnetName)
-    }
-    privateLinkServiceConnections: [
-      {
-        name: privateEndpointSearchName
-        properties: {
-          privateLinkServiceId: search.id
-          groupIds: [
-            'searchService'
-          ]
-        }
-      }
-    ]
-  }
-  dependsOn: [
-    virtualNetwork
-  ]
-}
+// resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+//   name: privateDnsZoneName
+//   location: 'global'
+//   properties: {}
+//   dependsOn: [
+//     virtualNetwork
+//   ]
+// }
 
-var privateDnsZoneName = 'privatelink.search.windows.net'
+// resource privateDnsZoneName_vnetName_link 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+//   parent: privateDnsZone
+//   name: '${virtualNetworkName}-link'
+//   location: 'global'
+//   properties: {
+//     registrationEnabled: false
+//     virtualNetwork: {
+//       id: virtualNetwork.id
+//     }
+//   }
+// }
 
-resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: privateDnsZoneName
-  location: 'global'
-  properties: {}
-  dependsOn: [
-    virtualNetwork
-  ]
-}
+// resource privateDnsZoneSQLGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-08-01' = {
+//   name: privateDnsZoneSQLGroupName
+//   properties: {
+//     privateDnsZoneConfigs: [
+//       {
+//         name: 'config1'
+//         properties: {
+//           privateDnsZoneId: privateDnsZone.id
+//         }
+//       }
+//     ]
+//   }
+//   dependsOn: [
+//     privateEndpointSQL
+//   ]
+// }
 
-resource privateDnsZoneName_vnetName_link 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  parent: privateDnsZone
-  name: '${virtualNetworkName}-link'
-  location: 'global'
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: virtualNetwork.id
-    }
-  }
-}
-
-var privateDnsZoneSQLGroupName = '${privateEndpointSQLName}/dnsgroupname'
-
-resource privateDnsZoneSQLGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-08-01' = {
-  name: privateDnsZoneSQLGroupName
-  properties: {
-    privateDnsZoneConfigs: [
-      {
-        name: 'config1'
-        properties: {
-          privateDnsZoneId: privateDnsZone.id
-        }
-      }
-    ]
-  }
-  dependsOn: [
-    privateEndpointSQL
-  ]
-}
-
-var privateDnsZoneSearchGroupName = '${privateEndpointSearchName}/dnsgroupname'
-
-resource privateDnsZoneSearchGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-08-01' = {
-  name: privateDnsZoneSearchGroupName
-  properties: {
-    privateDnsZoneConfigs: [
-      {
-        name: 'config1'
-        properties: {
-          privateDnsZoneId: privateDnsZone.id
-        }
-      }
-    ]
-  }
-  dependsOn: [
-    privateEndpointSearch
-  ]
-}
+// resource privateDnsZoneSearchGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-08-01' = {
+//   name: privateDnsZoneSearchGroupName
+//   properties: {
+//     privateDnsZoneConfigs: [
+//       {
+//         name: 'config1'
+//         properties: {
+//           privateDnsZoneId: privateDnsZone.id
+//         }
+//       }
+//     ]
+//   }
+//   dependsOn: [
+//     privateEndpointSearch
+//   ]
+// }
