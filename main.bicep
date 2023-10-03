@@ -100,11 +100,11 @@ resource sqlDB 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
 }
 
 
-var privateEndpointName = 'myPrivateEndpoint'
+var privateEndpointSQLName = 'b12-privateEndpointSQL'
 var subnet1Name = 'mySubnet'
 
 resource privateEndpointSQL 'Microsoft.Network/privateEndpoints@2020-07-01' = {
-  name: privateEndpointName
+  name: privateEndpointSQLName
   location: location
   properties: {
     subnet: {
@@ -112,7 +112,7 @@ resource privateEndpointSQL 'Microsoft.Network/privateEndpoints@2020-07-01' = {
     }
     privateLinkServiceConnections: [
       {
-        name: privateEndpointName
+        name: privateEndpointSQLName
         properties: {
           privateLinkServiceId: sqlServer.id
           groupIds: [
@@ -182,8 +182,10 @@ resource search 'Microsoft.Search/searchServices@2020-08-01' = {
   }
 }
 
+var privateEndpointSearchName = 'b12-privateEndpointSearch'
+
 resource privateEndpointSearch 'Microsoft.Network/privateEndpoints@2022-01-01' = {
-  name: privateEndpointName
+  name: privateEndpointSearchName
   location: location
   properties: {
     subnet: {
@@ -191,7 +193,7 @@ resource privateEndpointSearch 'Microsoft.Network/privateEndpoints@2022-01-01' =
     }
     privateLinkServiceConnections: [
       {
-        name: privateEndpointName
+        name: privateEndpointSearchName
         properties: {
           privateLinkServiceId: search.id
           groupIds: [
@@ -207,7 +209,6 @@ resource privateEndpointSearch 'Microsoft.Network/privateEndpoints@2022-01-01' =
 }
 
 var privateDnsZoneName = 'privatelink.search.windows.net'
-var privateDnsZoneGroupName = '${privateEndpointName}/dnsgroupname'
 
 resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: privateDnsZoneName
@@ -230,8 +231,10 @@ resource privateDnsZoneName_vnetName_link 'Microsoft.Network/privateDnsZones/vir
   }
 }
 
-resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-08-01' = {
-  name: privateDnsZoneGroupName
+var privateDnsZoneSQLGroupName = '${privateEndpointSQLName}/dnsgroupname'
+
+resource privateDnsZoneSQLGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-08-01' = {
+  name: privateDnsZoneSQLGroupName
   properties: {
     privateDnsZoneConfigs: [
       {
@@ -244,6 +247,24 @@ resource privateDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneG
   }
   dependsOn: [
     privateEndpointSQL
+  ]
+}
+
+var privateDnsZoneSearchGroupName = '${privateEndpointSearchName}/dnsgroupname'
+
+resource privateDnsZoneSearchGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2021-08-01' = {
+  name: privateDnsZoneSearchGroupName
+  properties: {
+    privateDnsZoneConfigs: [
+      {
+        name: 'config1'
+        properties: {
+          privateDnsZoneId: privateDnsZone.id
+        }
+      }
+    ]
+  }
+  dependsOn: [
     privateEndpointSearch
   ]
 }
