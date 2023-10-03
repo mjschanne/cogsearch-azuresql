@@ -25,5 +25,5 @@ jobs:
         subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION }}
         resourceGroupName: ${{ secrets.AZURE_RG }}
         template: ./main.bicep
-        parameters: 'administratorLogin=${{ secrets.SQL_ADMIN }} administratorLoginPassword=${{ secrets.SQL_PASSWORD }} searchName=b12-search'
+        parameters: 'prefix=b12 administratorLogin=${{ secrets.SQL_ADMIN }} administratorLoginPassword=${{ secrets.SQL_PASSWORD }} searchName=b12-search'
         failOnStdErr: false
